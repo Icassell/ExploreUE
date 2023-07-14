@@ -2,6 +2,7 @@
 
 #include "ThirdPersonDemoCharacter.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
+#include "MyPlayerState.h"
 #include "WeaponDataComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -113,6 +114,50 @@ void AThirdPersonDemoCharacter::BeginPlay()
 	// 设置渲染自定义深度
 	SkeletalMeshComponent->SetRenderCustomDepth(true);
 	SkeletalMeshComponent->SetCustomDepthStencilValue(1);//用模板值表示透视颜色
+}
+
+bool AThirdPersonDemoCharacter::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+{
+	UE_LOG(LogTemp, Warning, TEXT("IsNetRelevantFor,Self:%s,RealViewer:%s ViewTarget:%s SrcLocation:%s"),*GetName(), *RealViewer->GetName(), *ViewTarget->GetName(), *SrcLocation.ToString());
+	if(ViewTarget==this)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ViewTarget==this"));
+	}
+
+	AMyPlayerState* SelfMyPlayerState = Cast<AMyPlayerState>(GetPlayerState());
+
+	//同步规则：守方(1)能看到攻方(0) 攻方(0)能不看到守方(1)
+	const AThirdPersonDemoCharacter* NetConnectionCharacter=Cast<AThirdPersonDemoCharacter>(ViewTarget);
+	if(NetConnectionCharacter==nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("NetConnectionCharacter==nullptr"));
+		return false;
+	}
+	AMyPlayerState* NetConnectionPlayerState = Cast<AMyPlayerState>(NetConnectionCharacter->GetPlayerState());
+	if(NetConnectionPlayerState==nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("NetConnectionPlayerState==nullptr"));
+		return false;
+	}
+
+	//以当前连接的玩家(ViewTarget)为消费者，当前Actor为商品，消费者在挑选符合它条件的商品。
+
+	//消费者为守方，返回所有商品
+	if(NetConnectionPlayerState->CampId==1)
+	{
+		return true;
+	}
+
+	//消费者为攻方，只返回攻方
+	if(NetConnectionPlayerState->CampId==0)
+	{
+		if(SelfMyPlayerState->CampId==0)
+		{
+			return true;
+		}
+	}
+	
+	return false;
 }
 
 void AThirdPersonDemoCharacter::OnFire()

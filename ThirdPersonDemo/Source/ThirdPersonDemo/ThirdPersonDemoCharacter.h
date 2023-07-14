@@ -69,7 +69,19 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
 
+public:
+
 	virtual void BeginPlay() override;
+
+	/**
+	 * @brief 以当前连接的玩家(ViewTarget)为消费者，当前Actor为商品，消费者在挑选符合它条件的商品。
+	 * 意思是，当前Actor是否与ViewTarget相关，如果相关，才会被发送到客户端。那么当前是在遍历Connection，遍历到了ViewTarget对应的Connection，然后来收集ViewTarget相关的Actor，然后发送到客户端。
+	 * @param RealViewer 一般是PlayerController
+	 * @param ViewTarget 一般是Pawn
+	 * @param SrcLocation 
+	 * @return 
+	 */
+	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
 public:
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
